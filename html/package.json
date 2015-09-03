@@ -1,0 +1,18 @@
+{
+	"name": "tb",
+	"dependencies": {
+		"browserify": "*",
+		"gulp": "*",
+		"react": "*",
+		"gulp-sass": "*",
+		"underscore": "*",
+		"moment": "*",
+		"del": "*",
+		"reactify": "*",
+		"flux-react": "*",
+		"babelify": "*"
+	},
+	"devDependencies": {
+		"gulp-react": "*"
+	}
+}

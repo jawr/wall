@@ -1,0 +1,43 @@
+DROP TABLE IF EXISTS tags CASCADE;
+CREATE TABLE tags (
+	id SERIAL,
+	name TEXT NOT NULL,
+	PRIMARY KEY (id),
+	UNIQUE (name)
+);
+
+DROP TABLE IF EXISTS link_tags CASCADE;
+CREATE TABLE link_tags (
+	tag_id INT,
+	link_id INT,
+	FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+	FOREIGN KEY (link_id) REFERENCES links (id) ON DELETE CASCADE
+);
+
+DROP TABLE IF EXISTS links CASCADE;
+CREATE TABLE links (
+	id SERIAL,
+	user_id INT NOT NULL,
+	sub_category_id INT,
+	title TEXT NOT NULL,
+	url TEXT NOT NULL,
+	added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+	last_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+	viewed BOOL DEFAULT false,
+	meta JSONB NOT NULL DEFAULT '{}'::JSONB,
+	tags JSONB NOT NULL DEFAULT '[]'::JSONB,
+	click_count INT,
+	PRIMARY KEY (ID),
+	UNIQUE (url, user_id),
+	FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+);
+
+DROP TABLE IF EXISTS users CASCADE;
+CREATE TABLE users (
+    id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    permissions JSONB DEFAULT '{}'::JSONB,
+    UNIQUE (id),
+    UNIQUE (name)
+);
+

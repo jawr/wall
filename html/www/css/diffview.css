@@ -1,0 +1,99 @@
+/*
+This is part of jsdifflib v1.0. <http://github.com/cemerick/jsdifflib>
+
+Copyright 2007 - 2011 Chas Emerick <cemerick@snowtide.com>. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this list of
+      conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice, this list
+      of conditions and the following disclaimer in the documentation and/or other materials
+      provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY Chas Emerick ``AS IS'' AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Chas Emerick OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those of the
+authors and should not be interpreted as representing official policies, either expressed
+or implied, of Chas Emerick.
+*/
+
+table.diff {
+	font-size: 0.7em;
+	line-height: 0.8em;
+	font-family: "Courier New", Courier, monospace;
+	border: 1px solid #E1E1E1;
+	margin-top: 1.2rem;
+}
+
+table.diff th,
+table.diff td {
+	padding: 0.4rem 0.6rem;
+}
+
+table.diff td {
+	word-break: break-all;
+	border: none;
+}
+
+table.diff th:first-child {
+	padding-left: 8px;
+}
+
+table.diff th {
+	background: #F9F9F9;
+	border: 1px solid #e1e1e1;
+}
+
+table.diff tbody tr {
+	-webkit-transition: all 0.3s;
+	-moz-transition: all 0.3s;
+	-ms-transition: all 0.3s;
+	-o-transition: all 0.3s;
+	transition: all 0.3s;
+}
+
+table.diff tbody tr:hover {
+	background-color: #f9f9f9;
+}
+
+table.diff td:last-child {
+	padding-right: 8px;
+}
+
+
+table.diff .empty {
+	background-color:#DDD;
+}
+table.diff .replace,
+table.diff .replace ~ th {
+	background-color:#FD8
+}
+table.diff .delete {
+	background-color:#E99;
+}
+table.diff .skip {
+	background-color:#EFEFEF;
+	border:1px solid #AAA;
+	border-right:1px solid #BBC;
+}
+table.diff .insert {
+	background-color:#9E9
+}
+table.diff th.author {
+	text-align:right;
+	border-top:1px solid #BBC;
+	background:#EFEFEF
+}
+
+t
