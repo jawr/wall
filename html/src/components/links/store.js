@@ -147,14 +147,15 @@ var Store = Flux.createStore({
 			console.log(data);
 		});
 	},
-	Search: function(query) {
+	Search: function(data) {
 		var self = this;
-		if (query == undefined || query.length == 0) query = '%';
+		if (!data) data = {};
+		var query = data.query || '%';
 		query = query.replace(' ', '%');
 		if (query.length > 0 && query[0] != '%') {
 			query = '%'+query+'%';
 		}
-		var data = {query: query};
+		data['query'] = query;
 		$.ajax({
 			url: URL,
 			method: "GET",

@@ -178,7 +178,7 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	utils.ToJSON(user, err, w)
 }
 
 func New(db *pgstore.Store) httpHandler {
@@ -207,13 +207,7 @@ func New(db *pgstore.Store) httpHandler {
 						return
 					}
 				}
-				switch r.URL.Path {
-				case "/api/v1/auth/", "/api/v1/auth/status/", "/api/v1/auth/logout/", "/api/v1/external/salesforce":
-					h.ServeHTTP(w, r)
-					return
-				default:
-					w.WriteHeader(http.StatusUnauthorized)
-				}
+				h.ServeHTTP(w, r)
 
 			},
 		)

@@ -8,6 +8,7 @@ var RouteHandler = Router.RouteHandler;
 
 var Auth = require('./components/auth/store.js');
 var Login = require('./components/auth/login.js');
+var Wall = require('./components/links/wall.js');
 
 class Header extends React.Component {
 	constructor(props) {
@@ -39,17 +40,52 @@ class Header extends React.Component {
 		$(window).unbind('scroll');
 	}
 
+	static contextTypes = {
+		router: React.PropTypes.func.isRequired
+	}
+
+	renderSettings = () => {
+		return (
+			<div></div>
+		)
+	}
+
 	render() {
 		var classes = "";
+		var menu = [];
 		if (this.state.small) {
 			classes += " small";
+		} else {
+			if (Auth.LoggedIn()) {
+				var toIndex = function() {
+					Auth.Logout();
+					location.reload();
+				};
+				menu.push(<button className="button mini" onClick={toIndex}>Sign Out</button>);
+				menu.push(<button className="button mini" onClick={this.renderSettings}>settings</button>);
+			} else {
+				var self = this;
+				var toLogin = function() {
+					self.context.router.transitionTo('login');
+				};
+				menu.push(<button className="button mini" onClick={toLogin}>Sign In</button>);
+			}
 		}
+
+		if (menu.length > 0) {
+			menu = <div className="menu">{menu}</div>
+		}
+
+		if (this.context.router.getCurrentPath() == "/wall/login") {
+			menu = null;
+		}
+
 		return (
 			<div className={"container" + classes}>
-				<button className="tiny" onClick={Auth.Logout}>Sign Out</button>
 				<section className={"header" + classes}>
 					<h2><i className="icon ion-ios-albums-outline"></i></h2>
-					<h2>Post It.</h2>
+					<h2>Wall</h2>
+					{menu}
 				</section>
 				{this.props.children}
 			</div>
@@ -70,7 +106,8 @@ class App extends React.Component {
 var routes = (
 	<Route name="app" path="/wall/" handler={App}>
 		<Route name="index" handler={Index} />
-		<Route name="login" path="login" handler={Login} />
+		<Route name="login" path="/wall/login" handler={Login} />
+		<Route name="wall" path="/wall/:id" handler={Index} />
 		<DefaultRoute handler={Index} />
 	</Route>
 );
@@ -80,17 +117,14 @@ Modal.setAppElement(appElement);
 Modal.injectCSS();
 
 $(function() {
-    Auth.CheckLogin(function() {
-        Router.run(routes, Router.HistoryLocation, function(Handler, state) {
-            if (Auth.LoggedIn() == true) {
-                if (state.pathname == "/wall/login") {
-                    Handler.transitionTo("index");
-                }
-            } else if (state.pathname != "/wall/login") {
-                Handler.transitionTo("login");
-            }
-            var params = state.params;
-            React.render(<Handler params={params} />, appElement);
-        });
-    });
+	Auth.CheckLogin(function() {
+		Router.run(routes, Router.HistoryLocation, function(Handler, state) {
+			if (state.pathname == "/wall/" && !Auth.LoggedIn()) {
+				Handler.transitionTo("login");
+				return;
+			}
+			var params = state.params;
+			React.render(<Handler params={params} />, appElement);
+		});
+	});
 });

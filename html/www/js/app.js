@@ -679,7 +679,7 @@ module.exports = React.createClass({
         router: React.PropTypes.func
     },
     loggedIn: function loggedIn() {
-        this.context.router.transitionTo('index');
+        this.context.router.transitionTo('wall', { id: Store.User().id });
     },
     change: function change() {
         this.setState({});
@@ -776,6 +776,7 @@ var Store = Flux.createStore({
     Auth: function Auth(code) {
         var self = this;
         $.get(URL + '?code=' + code).done(function (data) {
+            self.user = $.parseJSON(data);
             self.loggedIn = true;
             self.processing = false;
             self.emit('auth.success');
@@ -829,7 +830,7 @@ var Store = Flux.createStore({
                         console.log('EXPIRED MOFO');
                     }
                 }
-                fn();
+                if (fn) fn();
             });
         }
     }
@@ -853,6 +854,7 @@ var CreateLink = require('./links/add.js');
 var Store = require('./links/store.js');
 var List = require('./links/list.js');
 var ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
+var Auth = require('./auth/store.js');
 
 var Index = (function (_React$Component) {
 	_inherits(Index, _React$Component);
@@ -873,7 +875,11 @@ var Index = (function (_React$Component) {
 		key: 'componentDidMount',
 		value: function componentDidMount() {
 			Store.on('Results', this.handleChange);
-			Store.Actions().Search();
+			var query = {};
+			if (this.props.params.id) {
+				query['user_id'] = this.props.params.id;
+			}
+			Store.Actions().Search(query);
 		}
 	}, {
 		key: 'componentDidUnmount',
@@ -886,7 +892,7 @@ var Index = (function (_React$Component) {
 			return React.createElement(
 				'section',
 				null,
-				React.createElement(CreateLink, null),
+				React.createElement(CreateLink, this.props),
 				React.createElement(
 					ReactCSSTransitionGroup,
 					{ transitionName: 'fade-in', transitionAppear: true },
@@ -903,7 +909,7 @@ var Index = (function (_React$Component) {
 
 module.exports = Index;
 
-},{"./links/add.js":15,"./links/list.js":18,"./links/store.js":19,"react":undefined}],15:[function(require,module,exports){
+},{"./auth/store.js":13,"./links/add.js":15,"./links/list.js":18,"./links/store.js":19,"react":undefined}],15:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -933,7 +939,7 @@ var Add = (function (_React$Component) {
 			state.value = event.target.value;
 			state.action = null;
 			if (state.value.length > 0) {
-				if (state.value.match(/^http/i)) {
+				if (state.authed && state.value.match(/^http/i)) {
 					state.action = 'add';
 				} else {
 					state.action = 'search';
@@ -957,12 +963,16 @@ var Add = (function (_React$Component) {
 
 		this.handleSearch = function (event) {
 			event.preventDefault();
-			Store.Actions().Search(_this.state.value);
+			var query = {
+				query: _this.state.value
+			};
+			Store.Actions().Search(query);
 		};
 
 		this.state = {
 			action: null,
-			value: ''
+			value: '',
+			authed: Auth.LoggedIn() && this.props.params.id == Auth.User().id
 		};
 	}
 
@@ -1054,8 +1064,25 @@ var Content = (function (_React$Component) {
 
 		this.state = {
 			contentWidth: 0,
-			playing: false
+			playing: false,
+			iframeURL: null
 		};
+
+		var self = this;
+		$.getJSON('http://noembed.com/embed?url=' + this.props.data.url).success(function (data) {
+			if (data.html && data.html.match(/iframe/)) {
+				var url = data.html;
+				var found = url.match(/src="([^"]+)"/);
+				if (found.length > 1) {
+					self.setState({
+						iframeURL: found[1],
+						iframePlaceholder: data.thumbnail_url
+					});
+				}
+			}
+		}).fail(function (data) {
+			console.log('fail', data);
+		});
 	}
 
 	_createClass(Content, [{
@@ -1071,14 +1098,24 @@ var Content = (function (_React$Component) {
 		value: function render() {
 			var o = this.props.data;
 			var content = null;
-			if (o.url.indexOf("youtube.com") > -1 && this.state.contentWidth > 0) {
-				if (!this.state.playing) {
-					var url = o.url.replace('www.youtube.com', 'img.youtube.com').replace('watch?v=', '/vi/') + '/hqdefault.jpg';
-
+			if (this.state.iframeURL) {
+				if (this.state.playing) {
+					var url = this.state.iframeURL;
+					if (!url.match(/(spotify)/)) {
+						if (url.match(/\?/)) {
+							url += '&autoplay=true&auto_play=true';
+						} else {
+							url += '?autoplay=true&auto_play=true';
+						}
+					} else {
+						console.log(url);
+					}
+					content = React.createElement('iframe', { width: this.state.contentWidth, src: url, frameBorder: '0', allowFullScreen: true });
+				} else {
 					content = React.createElement(
 						'div',
 						null,
-						React.createElement('img', { className: 'u-max-full-width', src: url }),
+						React.createElement('img', { className: 'u-max-full-width', src: this.state.iframePlaceholder }),
 						React.createElement(
 							'div',
 							{ className: 'overlay', onClick: this.handlePlay },
@@ -1089,12 +1126,11 @@ var Content = (function (_React$Component) {
 							)
 						)
 					);
-				} else {
-					var url = o.url.replace('watch?v=', 'embed/') + "?autoplay=1";
-					content = React.createElement('iframe', { width: this.state.contentWidth, src: url, frameBorder: '0', allowFullScreen: true });
 				}
 			} else if (o.url.match(/\.(jpeg|jpg|gif|png)$/i)) {
 				content = React.createElement('img', { className: 'u-max-full-width', src: o.url });
+			} else if (o.meta.image.length > 0) {
+				content = React.createElement('img', { className: 'u-max-full-width', src: o.meta.image });
 			}
 
 			if (content == null) {
@@ -1449,7 +1485,7 @@ var Item = (function (_React$Component) {
 
 module.exports = Item;
 
-},{"../utils/buttons.js":20,"./content.js":16,"./store.js":19,"moment":undefined,"react":undefined,"react-modal":8}],18:[function(require,module,exports){
+},{"../utils/buttons.js":21,"./content.js":16,"./store.js":19,"moment":undefined,"react":undefined,"react-modal":8}],18:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -1465,6 +1501,7 @@ var Item = require('./item.js');
 var moment = require('moment');
 var ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
 var _ = require('underscore');
+var LazyLoad = require('react-lazy-load');
 
 function groupByDate(data) {
 	var groups = {};
@@ -1506,12 +1543,16 @@ var Row = (function (_React$Component) {
 				return React.createElement(Item, { key: o.id, data: o });
 			});
 			return React.createElement(
-				'div',
-				{ className: 'list-row row' },
+				LazyLoad,
+				null,
 				React.createElement(
-					ReactCSSTransitionGroup,
-					{ transitionName: 'link' },
-					items
+					'div',
+					{ className: 'list-row row' },
+					React.createElement(
+						ReactCSSTransitionGroup,
+						{ transitionName: 'link' },
+						items
+					)
 				)
 			);
 		}
@@ -1587,7 +1628,7 @@ var List = (function (_React$Component3) {
 
 module.exports = List;
 
-},{"./item.js":17,"moment":undefined,"react/addons":undefined,"underscore":undefined}],19:[function(require,module,exports){
+},{"./item.js":17,"moment":undefined,"react-lazy-load":undefined,"react/addons":undefined,"underscore":undefined}],19:[function(require,module,exports){
 'use strict';
 
 var Flux = require('flux-react');
@@ -1703,14 +1744,15 @@ var Store = Flux.createStore({
 			console.log(data);
 		});
 	},
-	Search: function Search(query) {
+	Search: function Search(data) {
 		var self = this;
-		if (query == undefined || query.length == 0) query = '%';
+		if (!data) data = {};
+		var query = data.query || '%';
 		query = query.replace(' ', '%');
 		if (query.length > 0 && query[0] != '%') {
 			query = '%' + query + '%';
 		}
-		var data = { query: query };
+		data['query'] = query;
 		$.ajax({
 			url: URL,
 			method: "GET",
@@ -1746,6 +1788,74 @@ Store.on('results', _Actions.refreshResults);
 module.exports = Store;
 
 },{"flux-react":undefined,"moment":undefined}],20:[function(require,module,exports){
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var React = require('react');
+var Store = require('./store.js');
+var List = require('./list.js');
+var ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
+
+var Wall = (function (_React$Component) {
+	_inherits(Wall, _React$Component);
+
+	function Wall() {
+		var _this = this;
+
+		_classCallCheck(this, Wall);
+
+		_get(Object.getPrototypeOf(Wall.prototype), 'constructor', this).apply(this, arguments);
+
+		this.handleChange = function () {
+			_this.setState({});
+		};
+	}
+
+	_createClass(Wall, [{
+		key: 'componentDidMount',
+		value: function componentDidMount() {
+			Store.on('Results', this.handleChange);
+			var query = {
+				user_id: this.props.params.id
+			};
+			console.log(query);
+			Store.Actions().Search(query);
+		}
+	}, {
+		key: 'componentDidUnmount',
+		value: function componentDidUnmount() {
+			Store.off('Results', this.handleChange);
+		}
+	}, {
+		key: 'render',
+		value: function render() {
+			return React.createElement(
+				'section',
+				null,
+				React.createElement(
+					ReactCSSTransitionGroup,
+					{ transitionName: 'fade-in', transitionAppear: true },
+					React.createElement(List, { data: Store.Results() })
+				)
+			);
+		}
+	}]);
+
+	return Wall;
+})(React.Component);
+
+;
+
+module.exports = Wall;
+
+},{"./list.js":18,"./store.js":19,"react":undefined}],21:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -1964,7 +2074,7 @@ module.exports = {
 	Confirm: Confirm
 };
 
-},{"react/addons":undefined}],21:[function(require,module,exports){
+},{"react/addons":undefined}],22:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -1985,6 +2095,7 @@ var RouteHandler = Router.RouteHandler;
 
 var Auth = require('./components/auth/store.js');
 var Login = require('./components/auth/login.js');
+var Wall = require('./components/links/wall.js');
 
 var Header = (function (_React$Component) {
 	_inherits(Header, _React$Component);
@@ -1993,6 +2104,11 @@ var Header = (function (_React$Component) {
 		_classCallCheck(this, Header);
 
 		_get(Object.getPrototypeOf(Header.prototype), 'constructor', this).call(this, props);
+
+		this.renderSettings = function () {
+			return React.createElement('div', null);
+		};
+
 		this.state = {
 			small: false
 		};
@@ -2026,17 +2142,53 @@ var Header = (function (_React$Component) {
 		key: 'render',
 		value: function render() {
 			var classes = "";
+			var menu = [];
 			if (this.state.small) {
 				classes += " small";
+			} else {
+				if (Auth.LoggedIn()) {
+					var toIndex = function toIndex() {
+						Auth.Logout();
+						location.reload();
+					};
+					menu.push(React.createElement(
+						'button',
+						{ className: 'button mini', onClick: toIndex },
+						'Sign Out'
+					));
+					menu.push(React.createElement(
+						'button',
+						{ className: 'button mini', onClick: this.renderSettings },
+						'settings'
+					));
+				} else {
+					var self = this;
+					var toLogin = function toLogin() {
+						self.context.router.transitionTo('login');
+					};
+					menu.push(React.createElement(
+						'button',
+						{ className: 'button mini', onClick: toLogin },
+						'Sign In'
+					));
+				}
 			}
+
+			if (menu.length > 0) {
+				menu = React.createElement(
+					'div',
+					{ className: 'menu' },
+					menu
+				);
+			}
+
+			if (this.context.router.getCurrentPath() == "/wall/login") {
+				menu = null;
+			}
+
 			return React.createElement(
 				'div',
 				{ className: "container" + classes },
-				React.createElement(
-					'button',
-					{ className: 'tiny', onClick: Auth.Logout },
-					'Sign Out'
-				),
 				React.createElement(
 					'section',
 					{ className: "header" + classes },
@@ -2048,12 +2200,19 @@ var Header = (function (_React$Component) {
 					React.createElement(
 						'h2',
 						null,
-						'Post It.'
-					)
+						'Wall'
+					),
+					menu
 				),
 				this.props.children
 			);
 		}
+	}], [{
+		key: 'contextTypes',
+		value: {
+			router: React.PropTypes.func.isRequired
+		},
+		enumerable: true
 	}]);
 
 	return Header;
@@ -2090,7 +2249,8 @@ var routes = React.createElement(
 	Route,
 	{ name: 'app', path: '/wall/', handler: App },
 	React.createElement(Route, { name: 'index', handler: Index }),
-	React.createElement(Route, { name: 'login', path: 'login', handler: Login }),
+	React.createElement(Route, { name: 'login', path: '/wall/login', handler: Login }),
+	React.createElement(Route, { name: 'wall', path: '/wall/:id', handler: Index }),
 	React.createElement(DefaultRoute, { handler: Index })
 );
 
@@ -2101,12 +2261,9 @@ Modal.injectCSS();
 $(function () {
 	Auth.CheckLogin(function () {
 		Router.run(routes, Router.HistoryLocation, function (Handler, state) {
-			if (Auth.LoggedIn() == true) {
-				if (state.pathname == "/wall/login") {
-					Handler.transitionTo("index");
-				}
-			} else if (state.pathname != "/wall/login") {
+			if (state.pathname == "/wall/" && !Auth.LoggedIn()) {
 				Handler.transitionTo("login");
+				return;
 			}
 			var params = state.params;
 			React.render(React.createElement(Handler, { params: params }), appElement);
@@ -2114,4 +2271,4 @@ $(function () {
 	});
 });
 
-},{"./components/auth/login.js":12,"./components/auth/store.js":13,"./components/index.js":14,"react":undefined,"react-modal":8,"react-router":undefined}]},{},[21]);
+},{"./components/auth/login.js":12,"./components/auth/store.js":13,"./components/index.js":14,"./components/links/wall.js":20,"react":undefined,"react-modal":8,"react-router":undefined}]},{},[22]);

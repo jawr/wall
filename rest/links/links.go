@@ -94,14 +94,27 @@ func Search(w http.ResponseWriter, r *http.Request, params url.Values, limit, of
 		util.Error(err, w)
 		return
 	}
-	var user users.User
-	if u, ok := session.Values["user"]; ok {
-		user = u.(users.User)
-		log.Println(user)
+	userID := r.URL.Query().Get("user_id")
+	if len(userID) > 0 {
+		user, err := users.GetByID(userID)
+		if err != nil {
+			util.Error(err, w)
+			return
+		}
 		query := r.URL.Query().Get("query")
 		res, err := db.Search(user, query)
 		util.ToJSON(res, err, w)
 		return
+	} else {
+		var user users.User
+		if u, ok := session.Values["user"]; ok {
+			user = u.(users.User)
+			log.Println(user)
+			query := r.URL.Query().Get("query")
+			res, err := db.Search(user, query)
+			util.ToJSON(res, err, w)
+			return
+		}
 	}
 	util.Error(errors.New("Unable to get session"), w)
 }

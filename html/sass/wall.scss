@@ -120,7 +120,7 @@ body .container {
 		position: relative;
 		display: block;
 		overflow:hidden;
-			height: 14rem;
+		height: 14rem;
 
 		iframe {
 			position: absolute;
@@ -177,7 +177,7 @@ body .container {
 			letter-spacing: .2rem;
 			background-color: #fff;
 			padding: 0.6rem;
-		box-shadow: 0 6px 6px -6px #e1e1e1;
+			box-shadow: 0 6px 6px -6px #e1e1e1;
 			border-bottom: 1px solid #bbb;
 			display: inline-block;
 		}
@@ -397,4 +397,11 @@ hr {
 
 #login-button {
 	margin: 0 auto;
+}
+
+.menu {
+	margin-bottom: 1.4rem;
+	button {
+		margin-right: 1.2rem;
+	}
 }

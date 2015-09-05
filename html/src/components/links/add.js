@@ -7,7 +7,8 @@ class Add extends React.Component {
 		super(props);
 		this.state = {
 			action: null,
-			value: ''
+			value: '',
+			authed: Auth.LoggedIn() && this.props.params.id == Auth.User().id
 		};
 	}
 
@@ -16,7 +17,7 @@ class Add extends React.Component {
 		state.value = event.target.value;
 		state.action = null;
 		if (state.value.length > 0) {
-			if (state.value.match(/^http/i)) {
+			if (state.authed && state.value.match(/^http/i)) {
 				state.action = 'add';
 			} else {
 				state.action = 'search';
@@ -40,7 +41,10 @@ class Add extends React.Component {
 
 	handleSearch = (event) => {
 		event.preventDefault();
-		Store.Actions().Search(this.state.value);
+		var query = {
+			query: this.state.value
+		};
+		Store.Actions().Search(query);
 	}
 
 	render() {

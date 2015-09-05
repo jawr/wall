@@ -44,7 +44,8 @@ var Store = Flux.createStore({
     Auth: function(code) {
         var self = this;
         $.get(URL + '?code='+code)
-        .done(function(data) {
+	.done(function(data) {
+		self.user = $.parseJSON(data);
             self.loggedIn = true;
             self.processing = false;
             self.emit('auth.success');
@@ -99,8 +100,8 @@ var Store = Flux.createStore({
                     } else {
                         console.log('EXPIRED MOFO');
                     }
-                }
-                fn();
+		}
+		if (fn) fn();
             });
         }
     }

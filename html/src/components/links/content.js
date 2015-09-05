@@ -6,8 +6,27 @@ class Content extends React.Component {
 		super(props);
 		this.state = {
 			contentWidth: 0,
-			playing: false
+			playing: false,
+			iframeURL: null
 		}
+
+			var self = this;
+			$.getJSON('http://noembed.com/embed?url=' + this.props.data.url)
+			.success(function(data) {
+				if (data.html && data.html.match(/iframe/)) {
+					var url = data.html;
+					var found = url.match(/src="([^"]+)"/);
+					if (found.length > 1) {
+						self.setState({
+							iframeURL: found[1],
+							iframePlaceholder: data.thumbnail_url
+						});
+					}
+				}
+			})
+			.fail(function(data) {
+				console.log('fail', data);
+			});
 	}
 
 	componentDidMount() {
@@ -29,28 +48,35 @@ class Content extends React.Component {
 	render() {
 		var o = this.props.data;
 		var content = null;
-		if (o.url.indexOf("youtube.com") > -1 && this.state.contentWidth > 0) {
-			if (!this.state.playing) {
-				var url = o.url
-				.replace('www.youtube.com', 'img.youtube.com')
-				.replace('watch?v=', '/vi/') + '/hqdefault.jpg';
-
+		if (this.state.iframeURL) {
+			if (this.state.playing) {
+				var url = this.state.iframeURL;
+				if (!url.match(/(spotify)/)) {
+				if (url.match(/\?/)) {
+					url += '&autoplay=true&auto_play=true';
+				} else {
+					url +='?autoplay=true&auto_play=true';
+				}
+				} else {
+					console.log(url);
+				}
+				content = (
+					<iframe width={this.state.contentWidth} src={url} frameBorder="0" allowFullScreen></iframe>
+				)
+			} else {
 				content = (
 					<div>
-						<img className="u-max-full-width" src={url} />
+						<img className="u-max-full-width" src={this.state.iframePlaceholder} />
 						<div className="overlay" onClick={this.handlePlay}>
 							<h1><i className="icon ion-ios-play-outline"></i></h1>
 						</div>
 					</div>
 				)
-			} else {
-				var url = o.url.replace('watch?v=', 'embed/') + "?autoplay=1";
-				content = (
-					<iframe width={this.state.contentWidth} src={url} frameBorder="0" allowFullScreen></iframe>
-				)
 			}
 		} else if (o.url.match(/\.(jpeg|jpg|gif|png)$/i)) {
 			content = <img className="u-max-full-width" src={o.url} />
+		} else if (o.meta.image.length > 0) {
+			content = <img className="u-max-full-width" src={o.meta.image} />
 		}
 
 		if (content == null) {

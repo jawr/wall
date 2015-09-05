@@ -45,7 +45,7 @@ module.exports = React.createClass({
          router: React.PropTypes.func
     },
     loggedIn: function() {
-        this.context.router.transitionTo('index')
+        this.context.router.transitionTo('wall', {id: Store.User().id})
     },
     change: function() {
         this.setState({});

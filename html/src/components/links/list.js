@@ -3,6 +3,8 @@ var Item = require('./item.js');
 var moment = require('moment');
 var ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
 var _ = require('underscore');
+var LazyLoad = require('react-lazy-load')
+
 
 function groupByDate(data) {
 	var groups = {};
@@ -31,14 +33,16 @@ class Row extends React.Component {
 	render() {
 		var row = this.props.data;
 		var items = row.map(function(o) {
-			return <Item key={o.id} data={o} />
+			return 	<Item key={o.id} data={o} />
 		});
 		return (
+			<LazyLoad>
 			<div className="list-row row">
 				<ReactCSSTransitionGroup transitionName="link">
 					{items}
 				</ReactCSSTransitionGroup>
 			</div>
+				</LazyLoad>
 		)
 	}
 };

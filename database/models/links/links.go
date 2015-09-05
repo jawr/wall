@@ -12,6 +12,7 @@ import (
 
 type Meta struct {
 	Excerpt string `json:"excerpt"`
+	Image   string `json:"image"`
 }
 
 type Link struct {

@@ -15,6 +15,7 @@ gulp.task('app', ['clean'], function() {
 	.external(require.resolve('flux-react'))
 	.external(require.resolve('moment'))
 	.external(require.resolve('underscore'))
+	.external(require.resolve('react-lazy-load'))
 	.external(require.resolve('react/addons'))
 	.bundle(function(err, app) {
 		fs.writeFile('./www/js/app.js', app);
@@ -29,6 +30,7 @@ gulp.task('common', function() {
 	.require(require.resolve('react/addons'), { expose: 'react/addons' })
 	.require(require.resolve('flux-react'), { expose: 'flux-react' })
 	.require(require.resolve('moment'), { expose: 'moment' })
+	.require(require.resolve('react-lazy-load'), { expose: 'react-lazy-load' })
 	.require(require.resolve('underscore'), { expose: 'underscore' })
 	.bundle(function(err, libs) {
 		fs.writeFile('./www/js/common.js', libs);
